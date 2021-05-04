@@ -27,16 +27,16 @@ tcp_session_server_rst = 0x20
 tcp_session_client_fin = 0x30
 tcp_session_server_fin = 0x40
 
-# recv fin -> send fin & ack
-TCP_SESSION_SUBSTATE_LAST_ACK = 1
-# recv last ack
-TCP_SESSION_SUBSTATE_CLOSED = 2
-# send fin and wait ack
-TCP_SESSION_SUBSTATE_FIN_WAIT1 = 3
-# recv ack and wait fin
-TCP_SESSION_SUBSTATE_FIN_WAIT2 = 4
-# recv fin and send ack
-TCP_SESSION_SUBSTATE_TIME_WAIT = 5
+# recv fin from client
+TCP_SESSION_SUBSTATE_CLIENT_FIN = 0x01
+# recv ack from client
+TCP_SESSION_SUBSTATE_CLIENT_ACK = 0x02
+# recv fin from server
+TCP_SESSION_SUBSTATE_SERVER_FIN = 0x04
+# recv ack from server
+TCP_SESSION_SUBSTATE_SERVER_ACK = 0x08
+# recv RST or 2 FINs & 2 ACKs
+TCP_SESSION_SUBSTATE_CLOSED = 0x0f
 
 '''
 	key
@@ -51,27 +51,19 @@ TCP_SESSION_SUBSTATE_TIME_WAIT = 5
 sessions = {}
 tcp_pkt_flags = {0 : "No Flags", 1 : "SYN", 2 : "SYN + ACK", 3 : "PSH", 4 : "RST", 5 : "FIN", 6 : "ACK"}
 tcp_session_states = {
-	TCP_SYN_SENT : "TCP_SYN_SENT",
-	TCP_SYN_RECV : "TCP_SYN_RECV",
+	TCP_SYN_SENT 	: "TCP_SYN_SENT",
+	TCP_SYN_RECV 	: "TCP_SYN_RECV",
 	TCP_ESTABLISHED : "TCP_ESTABLISHED",
-	TCP_FIN_WAIT : "TCP_FIN_WAIT",
-}
-
-tcp_session_substates = {
-	TCP_SESSION_SUBSTATE_LAST_ACK : "LAST_ACK",
-	TCP_SESSION_SUBSTATE_CLOSED : "CLOSED",
-	TCP_SESSION_SUBSTATE_FIN_WAIT1 : "FIN_WAIT1",
-	TCP_SESSION_SUBSTATE_FIN_WAIT2 : "FIN_WAIT2",
-	TCP_SESSION_SUBSTATE_TIME_WAIT : "RIME_WAIT",
+	TCP_FIN_WAIT 	: "TCP_FIN_WAIT",
 }
 
 TCP_SESSION_FLAG_SEEN_SYN = 0x01
 
 tcp_session_destroy_first_pkt_dir = {
-	tcp_session_client_rst : "RST From Client",
-	tcp_session_server_rst : "RST From Server",
-	tcp_session_client_fin : "FIN From Client",
-	tcp_session_server_fin : "FIN From server",
+	tcp_session_client_rst : "RST is from Client",
+	tcp_session_server_rst : "RST is from Server",
+	tcp_session_client_fin : "FIN is from Client",
+	tcp_session_server_fin : "FIN is from server",
 }
 
 def tcp_flags_check(flags):

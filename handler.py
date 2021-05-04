@@ -62,7 +62,7 @@ def tcp_packet_handler(pkt, dir):
 					seq = pkt[TCP].seq - 1
 					# ack is initial seq of Proxy -> Client
 					ack = pkt[TCP].ack - 1
-					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0)
+					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
 					# OK, this is a valid client, create the session
 					tcp_state.sessions.update({key : value})
 					utils.send_syn_to_server(sip, dip, sport, dport, seq)
@@ -74,16 +74,17 @@ def tcp_packet_handler(pkt, dir):
 		offset = value[1]
 		now = value[2]
 		session_flags = value[3]
-		print "current state of session: %s/%s" % (tcp_state.tcp_session_states[state], tcp_state.tcp_pkt_flags[index])
+		print "current state of session: %s" % (tcp_state.tcp_session_states[state])
 		# SYN
 		if (index == 1):
 			if (time.time() - now > tcp_session_timeout[state]) :
 				print "session timeout"
 				send_synack_to_client(pkt)
-				value = (value[0], value[1], value[2], tcp_state.TCP_SESSION_FLAG_SEEN_SYN)
+				value = (value[0], value[1], value[2], tcp_state.TCP_SESSION_FLAG_SEEN_SYN, 0)
 				tcp_state.sessions.update({key : value})
 			else :
 				print "session isn't expired, drop the SYN"
+		# SYN + ACK
 		elif (index == 2):
 			if (dir == 0):
 				print "invalid packet, INGRE!!!"
@@ -91,7 +92,7 @@ def tcp_packet_handler(pkt, dir):
 				seq = pkt[TCP].seq
 				ack = pkt[TCP].ack
 				offset = seq - value[1]
-				value = (tcp_state.TCP_ESTABLISHED, offset, time.time(), 0)
+				value = (tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0)
 				# update state
 				tcp_state.sessions.update({key : value})
 				print "send ACK to backend"
@@ -119,12 +120,6 @@ def tcp_packet_handler(pkt, dir):
 			if (state == tcp_state.TCP_SYN_SENT) :
 				print "This is invalid packet, because window size is 0, DROP it"
 				return
-			# update state for RST/FIN
-			if (index == 4 or index == 5):
-				value = (tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3])
-				tcp_state.sessions.update({key : value})
-				value = (tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], tcp_state.TCP_SESSION_SUBSTATE_CLOSED | tcp_state.tcp_session_server_rst)
-
 			utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
 
 def tcp_packet_handler_from_client(pkt):
