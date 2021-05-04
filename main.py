@@ -2,41 +2,61 @@
 #coding=utf-8
 
 '''
-	BigBro @ 2021.04
+	BigBro [github.com/hiyouthinker] @ 2021.04/05
 '''
 
 from scapy.all import *
+import sys
+import getopt
 import thread
 
 import utils
 import handler
 
-def recv_from_client_thread():
-	cap_port = 8080
-	cap_if = "eth1"
-	filter = "tcp dst port %d" % cap_port
-	print "capture TCP packet of port %d on %s" % (cap_port, cap_if)
+SYN_PROXY_VERSION = "1.0.0 BigBro @ 2021.04/05"
 
-	sniff(filter = filter, prn = handler.tcp_packet_handler_from_client, store = 0, iface = "eth1", count = 0)
+def recv_from_client_thread(port, iface):
+	filter = "tcp dst port %d" % port
+	print "capture TCP packet of port %d from client on %s" % (port, iface)
 
-def recv_from_server_thread(threadName):
-	cap_port = 8080
-	cap_if = "eth2"
-	filter = "tcp src port %d" % cap_port
-	print "capture TCP packet of port %d on %s" % (cap_port, cap_if)
+	sniff(filter = filter, prn = handler.tcp_packet_handler_from_client, store = 0, iface = iface, count = 0)
 
-	sniff(filter = filter, prn = handler.tcp_packet_handler_from_server, store = 0, iface = "eth2", count = 0)
+def recv_from_server_thread(threadName, port, iface):
+	filter = "tcp src port %d" % port
+	print "capture TCP packet of port %d from server on %s" % (port, iface)
+
+	sniff(filter = filter, prn = handler.tcp_packet_handler_from_server, store = 0, iface = iface, count = 0)
 
 def show_session_thread(threadName):
 	while True:
 		time.sleep(10)
 		utils.show_tcp_all_sessions()
 
-try:
-	thread.start_new_thread(show_session_thread, ("",))
-	thread.start_new_thread(recv_from_server_thread, ("",))
-except:
-   print "Error: unable to start thread"
+if __name__ == "__main__":
+	port = 8080
+	iface1 = "eth1"
+	iface2 = "eth2"
 
-# start to capture pkts
-recv_from_client_thread()
+	opts, args = getopt.getopt(sys.argv[1:], 'hc:s:v', ['help', 'filename=', 'version'])
+	for opt, arg in opts:
+		if opt in ('-h', '--help'):
+			print("-h\t--help\t\tshow this help")
+			print("-c\t--fromclient\tinput interface of packet from client")
+			print("-s\t--fromserver\tinput interface of packet from backend")
+			print("-v\t--version\tshow version info")
+			exit()
+		elif opt in ('-v', '--version'):
+			print("%s" % SYN_PROXY_VERSION)
+			exit()
+		elif opt in ('-c', '--fromclient'):
+			iface1 = arg
+		elif opt in ('-s', '--fromserver'):
+			iface2 = arg
+
+	try:
+		thread.start_new_thread(show_session_thread, ("",))
+		thread.start_new_thread(recv_from_server_thread, ("", port, iface2))
+	except:
+		print "Error: unable to start thread"
+
+	recv_from_client_thread(port, iface1)
