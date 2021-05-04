@@ -25,6 +25,46 @@ def tcp_syn_cookie_get(flag):
 def tcp_syn_cookie_check(ack):
 	return True
 
+'''
+	reconstruct the packet instead of modifying the packet
+	because the TCP checksum needs to be modified
+'''
+def forwar_pkt_to_client_server(dir, pkt, offset):
+	sip = pkt[IP].src
+	dip = pkt[IP].dst
+	sport = pkt[TCP].sport
+	dport = pkt[TCP].dport
+	flags = pkt[TCP].flags
+	index = tcp_state.tcp_flags_check(flags)
+
+	# PSH
+	if (index == 3):
+		str = pkt.load
+		if ((len(str) >= 1) and (str[len(str) - 1] == '\n')):
+			str = str[0 : len(str) - 1] + "\\n"
+
+		if (dir == 0):
+			print "forward the PSH packet [%s] to backend" % str
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset)/pkt.load
+		else :
+			print "forward the PSH packet [%s] to client" % str
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack)/pkt.load
+	# ACK/RST/FIN
+	else :
+		target = "ACK"
+		if (index == 4):
+			target = "RST"
+		elif (index == 5):
+			target = "FIN"
+
+		if (dir == 0):
+			print "forward the %s packet to backend" % target
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset)
+		else :
+			print "forward the %s packet to client" % target
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack)
+	send(l3, verbose=False)
+
 def send_syn_to_server(sip, dip, sport, dport, seq):
 	flags = tcp_state.tcp_flags_syn
 	l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags,seq=seq)
@@ -74,7 +114,7 @@ def send_tcp_pkts(type):
 
 def show_tcp_all_sessions():
 	keys = tcp_state.sessions.keys()
-	print "session table: %d item(s)" % len(keys)
+	print "\nsession table: %d item(s)" % len(keys)
 	for key in keys :
 		value = tcp_state.sessions.get(key)
 		state = value[0]
