@@ -7,16 +7,16 @@ This is a Scapy-based TCP SYN Proxy, its function is similar to ipatbles SYNPROX
 ## 2 test
 ### 2.1 environment
 ```
-   client    <-->   SYN Proxy	<->		server
-172.50.1.65       172.50.1.66			172.50.2.67
+   client    <-->   SYN Proxy	<->	server
+172.50.1.65       172.50.1.66		172.50.2.67
 
 client
     None
 SYN Proxy
-
-server
-	iptables -t filter -A FORWARD -i eth1 -p tcp -m tcp --dport 8080 -j DROP
+    iptables -t filter -A FORWARD -i eth1 -p tcp -m tcp --dport 8080 -j DROP
     iptables -t filter -A FORWARD -i eth2 -p tcp -m tcp --sport 8080 -j DROP
+server
+    None
 ```
 ### 2.2 start testing
 ```
@@ -27,7 +27,7 @@ SYN Proxy
     root@lab2:~/syn_proxy# python main.py
 
 server
-	root@lab3:~# nc -l 8080
+    root@lab3:~# nc -l 8080
 ```
 ### 2.3 results
 ```
@@ -70,5 +70,5 @@ session table: 1 item(s)
 ```
 ## 3 Limits
 ```
-	does not support NAT (snat/dnat)
+    does not support NAT (snat/dnat)
 ```
