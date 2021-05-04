@@ -112,7 +112,7 @@ def tcp_packet_handler(pkt, dir):
 				print "What packet is it, IGNORE"
 			# ESTABLISHED or FIN_WAIT
 			else :
-				utils.forwar_pkt_to_client_server(dir, pkt, value[1])
+				utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
 		# FIN/PSH/RST
 		else :
 			# This is invalid packet, because window size is 0
@@ -123,8 +123,9 @@ def tcp_packet_handler(pkt, dir):
 			if (index == 4 or index == 5):
 				value = (tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3])
 				tcp_state.sessions.update({key : value})
+				value = (tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], tcp_state.TCP_SESSION_SUBSTATE_CLOSED | tcp_state.tcp_session_server_rst)
 
-			utils.forwar_pkt_to_client_server(dir, pkt, value[1])
+			utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
 
 def tcp_packet_handler_from_client(pkt):
 	tcp_packet_handler(pkt, 0)

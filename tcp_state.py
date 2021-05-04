@@ -29,23 +29,24 @@ tcp_session_server_fin = 0x40
 
 # recv fin -> send fin & ack
 TCP_SESSION_SUBSTATE_LAST_ACK = 1
-# recv ack
+# recv last ack
 TCP_SESSION_SUBSTATE_CLOSED = 2
 # send fin and wait ack
 TCP_SESSION_SUBSTATE_FIN_WAIT1 = 3
 # recv ack and wait fin
 TCP_SESSION_SUBSTATE_FIN_WAIT2 = 4
-# recv ack
+# recv fin and send ack
 TCP_SESSION_SUBSTATE_TIME_WAIT = 5
 
 '''
 	key
 		sip, sport, dpi, dport
 	value
-		state	=>	TCP State
-		offset 	=>	seq1 of Proxy -> Client - seq2 of Serevr -> Proxy
-		time	=>	last fresh time
-		flags	=>	seen syn ?
+		state		=>	TCP State
+		offset 		=>	seq1 of Proxy -> Client - seq2 of Serevr -> Proxy
+		time		=>	last fresh time
+		flags		=>	seen syn ?
+		substate	=>	substate state while state is TCP_FIN_WAIT
 '''
 sessions = {}
 tcp_pkt_flags = {0 : "No Flags", 1 : "SYN", 2 : "SYN + ACK", 3 : "PSH", 4 : "RST", 5 : "FIN", 6 : "ACK"}
