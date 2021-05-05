@@ -110,7 +110,9 @@ def tcp_packet_handler(pkt, dir):
 				if (utils.tcp_syn_cookie_check(pkt[TCP].ack) == False):
 					print "Invalid ACK, drop the packet"
 				else :
-					seq = pkt[TCP].seq - 1
+					# This is 0 window probe packet
+					# therefore we need to add 1 to make the SYN sequence number match the one of first SYN.
+					seq = pkt[TCP].seq - 1 + 1
 					ack = pkt[TCP].ack - 1
 #					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
 					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
