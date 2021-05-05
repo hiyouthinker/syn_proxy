@@ -65,9 +65,9 @@ def tcp_packet_handler(pkt, dir):
 					# OK, this is a valid client, create the session
 #					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
 #					tcp_state.sessions.update({key : value})
-					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0]
+					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
 					tcp_state.sessions[key] = value
-				utils.send_syn_to_server(sip, dip, sport, dport, seq)
+				utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			else :
 				print "invalid packet, drop the packet"
 	else :
@@ -99,11 +99,11 @@ def tcp_packet_handler(pkt, dir):
 				# update the session
 #				value = (tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0)
 #				tcp_state.sessions.update({key : value})
-				value = [tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0]
+				value = [tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0, value[5]]
 				tcp_state.sessions[key] = value
 				print "TCP 6-way handshake with client/server was completed successfully"
 				print "send ACK to backend"
-				utils.send_ack_to_server(dip, sip, dport, sport, seq=ack, ack=seq+1)
+				utils.send_ack_to_server(dip, sip, dport, sport, ack, seq+1, value[5])
 		# ACK
 		elif (index == 6):
 			if ((dir == 0) and ((session_flags & tcp_state.TCP_SESSION_FLAG_SEEN_SYN) or (state == tcp_state.TCP_SYN_SENT))):
@@ -113,9 +113,9 @@ def tcp_packet_handler(pkt, dir):
 					seq = pkt[TCP].seq - 1
 					ack = pkt[TCP].ack - 1
 #					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
-					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0]
+					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
 					print "Valid ACK, I will reconect to backend"
-					utils.send_syn_to_server(sip, dip, sport, dport, seq)
+					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			elif ((dir == 1) and (state == tcp_state.TCP_SYN_SENT)):
 				print "What packet is it, IGNORE"
 			# ESTABLISHED or FIN_WAIT

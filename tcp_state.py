@@ -47,6 +47,7 @@ TCP_SESSION_SUBSTATE_CLOSED = 0x0f
 		time		=>	last updated time
 		flags		=>	seen syn ?
 		substate	=>	substate state while state is TCP_FIN_WAIT
+		window		=>	window of 3-way handshake ACK from client
 '''
 sessions = {}
 tcp_pkt_flags = {0 : "No Flags", 1 : "SYN", 2 : "SYN + ACK", 3 : "PSH", 4 : "RST", 5 : "FIN", 6 : "ACK"}

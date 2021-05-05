@@ -39,6 +39,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	target = "ACK"
 	state = value[0]
 	substate = value[4]
+	window = pkt[TCP].window
 
 	# fresh the time
 #	value = (value[0], value[1], time.time(), value[3], value[4])
@@ -52,10 +53,10 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 
 		if (dir == 0):
 			print "forward the PSH packet [%s] to backend" % str
-			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset)/pkt.load
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset, window=window)/pkt.load
 		else :
 			print "forward the PSH packet [%s] to client" % str
-			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack)/pkt.load
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack, window=window)/pkt.load
 		send(l3, verbose=False)
 		return
 	# ACK/FIN
@@ -98,21 +99,21 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 
 	if (dir == 0):
 		print "forward the %s packet to backend" % target
-		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset)
+		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset, window=window)
 	else :
 		print "forward the %s packet to client" % target
-		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack)
+		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack, window=window)
 	send(l3, verbose=False)
 
-def send_syn_to_server(sip, dip, sport, dport, seq):
+def send_syn_to_server(sip, dip, sport, dport, seq, window):
 	flags = tcp_state.tcp_flags_syn
-	l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags,seq=seq)
+	l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, window=window)
 	send(l3, verbose=False)
 	return
 
-def send_ack_to_server(sip, dip, sport, dport, seq, ack):
+def send_ack_to_server(sip, dip, sport, dport, seq, ack, window):
 	flags = tcp_state.tcp_flags_ack
-	l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags,seq=seq, ack=ack)
+	l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags,seq=seq, ack=ack, window=window)
 	send(l3, verbose=False)
 	return
 
