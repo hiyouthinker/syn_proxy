@@ -29,7 +29,7 @@ def recv_from_server_thread(threadName, port, iface):
 
 def show_session_thread(threadName):
 	while True:
-		time.sleep(10)
+		time.sleep(5)
 		utils.show_tcp_all_sessions()
 
 if __name__ == "__main__":

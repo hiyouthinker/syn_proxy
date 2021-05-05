@@ -44,17 +44,17 @@ TCP_SESSION_SUBSTATE_CLOSED = 0x0f
 	value
 		state		=>	TCP State
 		offset 		=>	seq1 of Proxy -> Client - seq2 of Serevr -> Proxy
-		time		=>	last fresh time
+		time		=>	last updated time
 		flags		=>	seen syn ?
 		substate	=>	substate state while state is TCP_FIN_WAIT
 '''
 sessions = {}
 tcp_pkt_flags = {0 : "No Flags", 1 : "SYN", 2 : "SYN + ACK", 3 : "PSH", 4 : "RST", 5 : "FIN", 6 : "ACK"}
 tcp_session_states = {
-	TCP_SYN_SENT 	: "TCP_SYN_SENT",
-	TCP_SYN_RECV 	: "TCP_SYN_RECV",
-	TCP_ESTABLISHED : "TCP_ESTABLISHED",
-	TCP_FIN_WAIT 	: "TCP_FIN_WAIT",
+	TCP_SYN_SENT 	: "SYN_SENT",
+	TCP_SYN_RECV 	: "SYN_RECV",
+	TCP_ESTABLISHED : "ESTABLISHED",
+	TCP_FIN_WAIT 	: "FIN_WAIT",
 }
 
 TCP_SESSION_FLAG_SEEN_SYN = 0x01
