@@ -62,10 +62,12 @@ def tcp_packet_handler(pkt, dir):
 					seq = pkt[TCP].seq - 1
 					# ack is initial seq of Proxy -> Client
 					ack = pkt[TCP].ack - 1
-					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
 					# OK, this is a valid client, create the session
-					tcp_state.sessions.update({key : value})
-					utils.send_syn_to_server(sip, dip, sport, dport, seq)
+#					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
+#					tcp_state.sessions.update({key : value})
+					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0]
+					tcp_state.sessions[key] = value
+				utils.send_syn_to_server(sip, dip, sport, dport, seq)
 			else :
 				print "invalid packet, drop the packet"
 	else :
@@ -80,8 +82,10 @@ def tcp_packet_handler(pkt, dir):
 			if (time.time() - now > tcp_session_timeout[state]) :
 				print "session timeout"
 				send_synack_to_client(pkt)
-				value = (value[0], value[1], value[2], tcp_state.TCP_SESSION_FLAG_SEEN_SYN, 0)
-				tcp_state.sessions.update({key : value})
+#				value = (value[0], value[1], value[2], tcp_state.TCP_SESSION_FLAG_SEEN_SYN, value[4])
+#				tcp_state.sessions.update({key : value})
+				value[3] = tcp_state.TCP_SESSION_FLAG_SEEN_SYN
+				tcp_state.sessions[key] = value
 			else :
 				print "session isn't expired, drop the SYN"
 		# SYN + ACK
@@ -92,11 +96,13 @@ def tcp_packet_handler(pkt, dir):
 				seq = pkt[TCP].seq
 				ack = pkt[TCP].ack
 				offset = seq - value[1]
-				value = (tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0)
-				# update state
-				tcp_state.sessions.update({key : value})
-				print "send ACK to backend"
+				# update the session
+#				value = (tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0)
+#				tcp_state.sessions.update({key : value})
+				value = [tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0]
+				tcp_state.sessions[key] = value
 				print "TCP 6-way handshake with client/server was completed successfully"
+				print "send ACK to backend"
 				utils.send_ack_to_server(dip, sip, dport, sport, seq=ack, ack=seq+1)
 		# ACK
 		elif (index == 6):
@@ -106,7 +112,8 @@ def tcp_packet_handler(pkt, dir):
 				else :
 					seq = pkt[TCP].seq - 1
 					ack = pkt[TCP].ack - 1
-					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0)
+#					value = (tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0)
+					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0]
 					print "Valid ACK, I will reconect to backend"
 					utils.send_syn_to_server(sip, dip, sport, dport, seq)
 			elif ((dir == 1) and (state == tcp_state.TCP_SYN_SENT)):

@@ -41,8 +41,10 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	substate = value[4]
 
 	# fresh the time
-	value = (value[0], value[1], time.time(), value[3], value[4])
-	tcp_state.sessions.update({key : value})
+#	value = (value[0], value[1], time.time(), value[3], value[4])
+#	tcp_state.sessions.update({key : value})
+	value[2] = time.time()
+	tcp_state.sessions[key] = value
 
 	# PSH
 	if (index == 3):
@@ -89,8 +91,10 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			substate = tcp_state.TCP_SESSION_SUBSTATE_CLOSED | tcp_state.tcp_session_server_rst
 
 	if (substate != value[4]):
-		value = (tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], substate)
-		tcp_state.sessions.update({key : value})
+#		value = (tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], substate)
+#		tcp_state.sessions.update({key : value})
+		value = [tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], substate]
+		tcp_state.sessions[key] = value
 
 	if (dir == 0):
 		print "forward the %s packet to backend" % target
