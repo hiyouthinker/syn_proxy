@@ -95,11 +95,16 @@ def tcp_packet_handler(pkt, dir):
 		# SYN + ACK
 		elif (index == 2):
 			if (dir == 0):
-				print "invalid packet, INGRE!!!"
+				print "invalid packet, INGORE!!!"
 			else :
 				seq = pkt[TCP].seq
 				ack = pkt[TCP].ack
-				offset = seq - value[1]
+				if (state == tcp_state.TCP_ESTABLISHED):
+					print "received retransmitted SYN + ACK"
+					offset = value[1]
+				else :
+					# value[1] is seq from SYN Proxy to Client
+					offset = seq - value[1]
 				# update the session
 #				value = (tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0)
 #				tcp_state.sessions.update({key : value})

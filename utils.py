@@ -139,14 +139,14 @@ def show_tcp_all_sessions():
 		state = value[0]
 
 		if (state == tcp_state.TCP_FIN_WAIT):
-			print ("\t[%s:%d => %s:%d], last_time: %d, state: %s/0x%02x (first %s)"
-				% (key[0], key[1], key[2], key[3], value[2],
+			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, state: %s/0x%02x (first %s)"
+				% (key[0], key[1], key[2], key[3], value[2], value[1],
 				tcp_state.tcp_session_states[state],
 				(value[4] & 0x0f),
 				tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0xf0]))
 		else :
-			print ("\t[%s:%d => %s:%d], last_time: %d, state: %s"
-				% (key[0], key[1], key[2], key[3], value[2], tcp_state.tcp_session_states[state]))
+			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, state: %s"
+				% (key[0], key[1], key[2], key[3], value[2], value[1], tcp_state.tcp_session_states[state]))
 
 		if ((time.time() - value[2]) > tcp_session_timeout[state]):
 			print "\t\t(this session was expired, will be removed)"
