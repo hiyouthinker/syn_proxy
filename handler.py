@@ -68,6 +68,10 @@ def tcp_packet_handler(pkt, dir):
 					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
 					tcp_state.sessions[key] = value
 				utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
+			# PSH
+			elif (index == 3):
+				str = pkt.load.replace('\n', '\\n')
+				print "invalid packet (%s), drop the packet" % str
 			else :
 				print "invalid packet, drop the packet"
 	else :
