@@ -21,6 +21,7 @@ def tcp_syn_cookie_get(flag):
 		seq = random.randint(0, 4294967295)
 	else :
 		seq = time.time()
+	return seq
 
 def tcp_syn_cookie_check(ack):
 	return True
