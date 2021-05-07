@@ -107,10 +107,14 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
 			return
 		print "forward the %s packet to backend" % (target)
-		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset, window=window)
+		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)
 	else :
+		seq = pkt[TCP].seq - offset
+		if ((seq < 0) or (seq > 4294967295)):
+			print "seq from server is invalid (%d/%d), change the seq to 0x123456" % (pkt[TCP].seq, offset)
+			return
 		print "forward the %s packet to client" % (target)
-		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack, window=window)
+		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)
 	send(l3, verbose=False)
 
 def send_syn_to_server(sip, dip, sport, dport, seq, window):

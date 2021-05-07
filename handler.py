@@ -129,16 +129,21 @@ def tcp_packet_handler(pkt, dir):
 					print "Valid ACK, I will reconect to backend"
 					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			elif ((dir == 1) and (state == tcp_state.TCP_SYN_SENT)):
-				print "What packet is it, IGNORE"
+				# server's old connection is still active
+				# try to forward the packet
+				print "server's old connection is still active? forwad the pkt to client"
 			# ESTABLISHED or FIN_WAIT
 			else :
 				utils.forwar_pkt_to_client_server(key, value, dir, pkt, offset)
 		# FIN/PSH/RST
 		else :
-			# This is invalid packet, because window size is 0
 			if (state == tcp_state.TCP_SYN_SENT) :
-				print "This is invalid packet, because window size is 0, DROP it"
-				return
+				if (dir == 0):
+					# This is invalid packet, because window size is 0
+					print "This is invalid packet, because window size is 0, DROP it"
+					return
+				else :
+					print "server's old connection is still active? forwad the pkt to client"
 			utils.forwar_pkt_to_client_server(key, value, dir, pkt, offset)
 
 def tcp_packet_handler_from_client(pkt):
