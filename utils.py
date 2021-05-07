@@ -75,34 +75,40 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 		if (index == 5):
 			target = "FIN"
 			if (dir == 0):
-				if (substate == 0):
-					substate = tcp_state.tcp_session_client_fin
+				# xx00 0000, xx is FIN bit field
+				if ((substate & 0xc0) == 0):
+					substate |= tcp_state.tcp_session_client_fin
 				substate |= tcp_state.TCP_SESSION_SUBSTATE_CLIENT_FIN
 			else :
-				if (substate == 0):
-					substate = tcp_state.tcp_session_server_fin
+				if ((substate & 0xc0) == 0):
+					substate |= tcp_state.tcp_session_server_fin
 				substate |= tcp_state.TCP_SESSION_SUBSTATE_SERVER_FIN
 	# RST
 	else :
 		target = "RST"
 		if (dir == 0):
-			if (substate == 0):
-				substate = tcp_state.tcp_session_client_rst
-			substate = tcp_state.TCP_SESSION_SUBSTATE_CLOSED | tcp_state.tcp_session_client_rst
+			# 00xx 0000, xx is RST bit field
+			if ((substate & 0x30) == 0):
+				substate |= tcp_state.tcp_session_client_rst
+			substate |= tcp_state.TCP_SESSION_SUBSTATE_CLOSED
 		else :
-			if (substate == 0):
-				substate = tcp_state.tcp_session_server_rst
-			substate = tcp_state.TCP_SESSION_SUBSTATE_CLOSED | tcp_state.tcp_session_server_rst
+			if ((substate & 0x30) == 0):
+				substate |= tcp_state.tcp_session_server_rst
+			substate |= tcp_state.TCP_SESSION_SUBSTATE_CLOSED
 
 	if (substate != value[4]):
 		value = [tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], substate]
 		tcp_state.sessions[key] = value
 
 	if (dir == 0):
-		print "forward the %s packet to backend" % target
+		ack = pkt[TCP].ack + offset
+		if ((ack < 0) or (ack > 4294967295)):
+			print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
+			return
+		print "forward the %s packet to backend" % (target)
 		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset, window=window)
 	else :
-		print "forward the %s packet to client" % target
+		print "forward the %s packet to client" % (target)
 		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack, window=window)
 	send(l3, verbose=False)
 
@@ -145,11 +151,18 @@ def show_tcp_all_sessions():
 			status += " & SEEN SYN"
 
 		if (state == tcp_state.TCP_FIN_WAIT):
-			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, status: %s, state: %s/0x%02x (first %s)"
+			substate = ""
+			if (value[4] & 0xc0):
+				substate = tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0xc0]
+			if (value[4] & 0x30):
+				if (len(substate) != 0):
+					substate += "/" + tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0x30]
+				else :
+					substate = tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0x30]
+			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, status: %s, state: %s/0x%02x (%s)"
 				% (key[0], key[1], key[2], key[3], value[2], value[1], status,
 				tcp_state.tcp_session_states[state],
-				(value[4] & 0x0f),
-				tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0xf0]))
+				(value[4] & 0x0f), substate))
 		else :
 			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, status: %s, state: %s"
 				% (key[0], key[1], key[2], key[3], value[2], value[1], status, tcp_state.tcp_session_states[state]))
