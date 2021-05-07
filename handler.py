@@ -65,7 +65,7 @@ def tcp_packet_handler(pkt, dir):
 					# OK, this is a valid client, create the session
 					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
 					tcp_state.sessions[key] = value
-				utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
+					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			# PSH
 			elif (index == 3):
 				str = pkt.load.replace('\n', '\\n')
@@ -81,9 +81,9 @@ def tcp_packet_handler(pkt, dir):
 		print "current state of session: %s" % (tcp_state.tcp_session_states[state])
 		# SYN
 		if (index == 1):
-			if (time.time() - now > tcp_session_timeout[state]) :
+			if (time.time() - now > utils.tcp_session_timeout[state]) :
 				print "session timeout"
-				send_synack_to_client(pkt)
+				utils.send_synack_to_client(pkt)
 				value[3] = tcp_state.TCP_SESSION_FLAG_SEEN_SYN
 				tcp_state.sessions[key] = value
 			else :
@@ -111,13 +111,21 @@ def tcp_packet_handler(pkt, dir):
 		elif (index == 6):
 			if ((dir == 0) and ((session_flags & tcp_state.TCP_SESSION_FLAG_SEEN_SYN) or (state == tcp_state.TCP_SYN_SENT))):
 				if (utils.tcp_syn_cookie_check(pkt[TCP].ack) == False):
+					if (session_flags & tcp_state.TCP_SESSION_FLAG_SEEN_SYN) :
+						print "ACK verification failed, forward the packet to backend"
+						value[3] &= ~tcp_state.TCP_SESSION_FLAG_SEEN_SYN
+						tcp_state.sessions[key] = value
+						utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
+						return
 					print "Invalid ACK, drop the packet"
 				else :
 					# This is 0 window probe packet
 					# therefore we need to add 1 to make the SYN sequence number match the one of first SYN.
 					seq = pkt[TCP].seq - 1 + 1
 					ack = pkt[TCP].ack - 1
+					# update state and seq of SYN Proxy and time
 					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
+					tcp_state.sessions[key] = value
 					print "Valid ACK, I will reconect to backend"
 					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			elif ((dir == 1) and (state == tcp_state.TCP_SYN_SENT)):

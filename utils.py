@@ -6,6 +6,7 @@
 '''
 from scapy.all import *
 import signal
+import os
 
 import tcp_state
 
@@ -24,7 +25,10 @@ def tcp_syn_cookie_get(flag):
 	return seq
 
 def tcp_syn_cookie_check(ack):
-	return True
+	if (os.path.exists("/tmp/syn_cookie_test")):
+		return False
+	else :
+		return True
 
 '''
 	reconstruct the packet instead of modifying the packet
@@ -133,17 +137,30 @@ def show_tcp_all_sessions():
 	for key in keys :
 		value = tcp_state.sessions.get(key)
 		state = value[0]
+		status = "Active"
+
+		if (value[3] & tcp_state.TCP_SESSION_FLAG_EXPIRED):
+			status = "Expired"
+		if (value[3] & tcp_state.TCP_SESSION_FLAG_SEEN_SYN):
+			status += " & SEEN SYN"
 
 		if (state == tcp_state.TCP_FIN_WAIT):
-			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, state: %s/0x%02x (first %s)"
-				% (key[0], key[1], key[2], key[3], value[2], value[1],
+			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, status: %s, state: %s/0x%02x (first %s)"
+				% (key[0], key[1], key[2], key[3], value[2], value[1], status,
 				tcp_state.tcp_session_states[state],
 				(value[4] & 0x0f),
 				tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0xf0]))
 		else :
-			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, state: %s"
-				% (key[0], key[1], key[2], key[3], value[2], value[1], tcp_state.tcp_session_states[state]))
+			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, status: %s, state: %s"
+				% (key[0], key[1], key[2], key[3], value[2], value[1], status, tcp_state.tcp_session_states[state]))
 
 		if ((time.time() - value[2]) > tcp_session_timeout[state]):
-			print "\t\t(this session was expired, will be removed)"
-			del tcp_state.sessions[key]
+			if (0):
+				print "\t\t(this session was expired, will be removed)"
+				del tcp_state.sessions[key]
+			else :
+				value[3] |= tcp_state.TCP_SESSION_FLAG_EXPIRED
+				tcp_state.sessions[key] = value
+		else :
+			value[3] &= ~tcp_state.TCP_SESSION_FLAG_EXPIRED
+			tcp_state.sessions[key] = value

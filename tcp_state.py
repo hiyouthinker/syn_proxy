@@ -59,6 +59,7 @@ tcp_session_states = {
 }
 
 TCP_SESSION_FLAG_SEEN_SYN = 0x01
+TCP_SESSION_FLAG_EXPIRED = 0x02
 
 tcp_session_destroy_first_pkt_dir = {
 	tcp_session_client_rst : "RST is from Client",
