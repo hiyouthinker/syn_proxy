@@ -43,11 +43,12 @@ TCP_SESSION_SUBSTATE_CLOSED = 0x0f
 		sip, sport, dpi, dport
 	value
 		state		=>	TCP State
-		offset 		=>	seq1 of Proxy -> Client - seq2 of Serevr -> Proxy
+		isn 		=>	initial seq number of Proxy -> Client
 		time		=>	last updated time
 		flags		=>	seen syn ?
 		substate	=>	substate state while state is TCP_FIN_WAIT
 		window		=>	window of 3-way handshake ACK from client
+		offset		=>	the offset of seq/ack number between the client and the server
 '''
 sessions = {}
 tcp_pkt_flags = {0 : "No Flags", 1 : "SYN", 2 : "SYN + ACK", 3 : "PSH", 4 : "RST", 5 : "FIN", 6 : "ACK"}

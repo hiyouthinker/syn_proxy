@@ -63,7 +63,7 @@ def tcp_packet_handler(pkt, dir):
 					# ack is initial seq of Proxy -> Client
 					ack = pkt[TCP].ack - 1
 					# OK, this is a valid client, create the session
-					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
+					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window, 0]
 					tcp_state.sessions[key] = value
 					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			# PSH
@@ -75,7 +75,7 @@ def tcp_packet_handler(pkt, dir):
 	else :
 		value = tcp_state.sessions.get(key)
 		state = value[0]
-		offset = value[1]
+		offset = value[6]
 		now = value[2]
 		session_flags = value[3]
 		print "current state of session: %s" % (tcp_state.tcp_session_states[state])
@@ -97,12 +97,11 @@ def tcp_packet_handler(pkt, dir):
 				ack = pkt[TCP].ack
 				if (state == tcp_state.TCP_ESTABLISHED):
 					print "received retransmitted SYN + ACK"
-					offset = value[1]
 				else :
-					# value[1] is seq from SYN Proxy to Client
+					# value[1] is initial seq number from SYN Proxy to Client
 					offset = seq - value[1]
 				# update the session
-				value = [tcp_state.TCP_ESTABLISHED, offset, time.time(), 0, 0, value[5]]
+				value = [tcp_state.TCP_ESTABLISHED, value[1], time.time(), 0, 0, value[5], offset]
 				tcp_state.sessions[key] = value
 				print "TCP 6-way handshake with client/server was completed successfully"
 				print "send ACK to backend"
@@ -115,7 +114,7 @@ def tcp_packet_handler(pkt, dir):
 						print "ACK verification failed, forward the packet to backend"
 						value[3] &= ~tcp_state.TCP_SESSION_FLAG_SEEN_SYN
 						tcp_state.sessions[key] = value
-						utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
+						utils.forwar_pkt_to_client_server(key, value, dir, pkt, offset)
 						return
 					print "Invalid ACK, drop the packet"
 				else :
@@ -124,7 +123,8 @@ def tcp_packet_handler(pkt, dir):
 					seq = pkt[TCP].seq - 1 + 1
 					ack = pkt[TCP].ack - 1
 					# update state and seq of SYN Proxy and time
-					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window]
+					# value[6] is offset, the value MUST NOT be changed before receiving the SYN+ ACK from the server
+					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window, value[6]]
 					tcp_state.sessions[key] = value
 					print "Valid ACK, I will reconect to backend"
 					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
@@ -132,14 +132,14 @@ def tcp_packet_handler(pkt, dir):
 				print "What packet is it, IGNORE"
 			# ESTABLISHED or FIN_WAIT
 			else :
-				utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
+				utils.forwar_pkt_to_client_server(key, value, dir, pkt, offset)
 		# FIN/PSH/RST
 		else :
 			# This is invalid packet, because window size is 0
 			if (state == tcp_state.TCP_SYN_SENT) :
 				print "This is invalid packet, because window size is 0, DROP it"
 				return
-			utils.forwar_pkt_to_client_server(key, value, dir, pkt, value[1])
+			utils.forwar_pkt_to_client_server(key, value, dir, pkt, offset)
 
 def tcp_packet_handler_from_client(pkt):
 	tcp_packet_handler(pkt, 0)

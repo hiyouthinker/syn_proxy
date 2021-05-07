@@ -97,7 +97,8 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			substate |= tcp_state.TCP_SESSION_SUBSTATE_CLOSED
 
 	if (substate != value[4]):
-		value = [tcp_state.TCP_FIN_WAIT, value[1], value[2], value[3], substate]
+		value[0] = tcp_state.TCP_FIN_WAIT
+		value[4] = substate
 		tcp_state.sessions[key] = value
 
 	if (dir == 0):
@@ -160,12 +161,12 @@ def show_tcp_all_sessions():
 				else :
 					substate = tcp_state.tcp_session_destroy_first_pkt_dir[value[4] & 0x30]
 			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, status: %s, state: %s/0x%02x (%s)"
-				% (key[0], key[1], key[2], key[3], value[2], value[1], status,
+				% (key[0], key[1], key[2], key[3], value[2], value[6], status,
 				tcp_state.tcp_session_states[state],
 				(value[4] & 0x0f), substate))
 		else :
 			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, status: %s, state: %s"
-				% (key[0], key[1], key[2], key[3], value[2], value[1], status, tcp_state.tcp_session_states[state]))
+				% (key[0], key[1], key[2], key[3], value[2], value[6], status, tcp_state.tcp_session_states[state]))
 
 		if ((time.time() - value[2]) > tcp_session_timeout[state][1]):
 			print "\t\t(this session was expired, will be removed)"
