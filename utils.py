@@ -11,10 +11,10 @@ import os
 import tcp_state
 
 tcp_session_timeout = {
-	tcp_state.TCP_SYN_SENT : 10,
-	tcp_state.TCP_SYN_RECV : 10,
-	tcp_state.TCP_ESTABLISHED : 1800,
-	tcp_state.TCP_FIN_WAIT : 10,
+	tcp_state.TCP_SYN_SENT : [10, 60],
+	tcp_state.TCP_SYN_RECV : [10, 60],
+	tcp_state.TCP_ESTABLISHED : [1800, 3600],
+	tcp_state.TCP_FIN_WAIT : [10, 60],
 }
 
 def tcp_syn_cookie_get(flag):
@@ -167,13 +167,12 @@ def show_tcp_all_sessions():
 			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, status: %s, state: %s"
 				% (key[0], key[1], key[2], key[3], value[2], value[1], status, tcp_state.tcp_session_states[state]))
 
-		if ((time.time() - value[2]) > tcp_session_timeout[state]):
-			if (0):
-				print "\t\t(this session was expired, will be removed)"
-				del tcp_state.sessions[key]
-			else :
-				value[3] |= tcp_state.TCP_SESSION_FLAG_EXPIRED
-				tcp_state.sessions[key] = value
-		else :
+		if ((time.time() - value[2]) > tcp_session_timeout[state][1]):
+			print "\t\t(this session was expired, will be removed)"
+			del tcp_state.sessions[key]
+		elif ((time.time() - value[2]) > tcp_session_timeout[state][0]):
+			value[3] |= tcp_state.TCP_SESSION_FLAG_EXPIRED
+			tcp_state.sessions[key] = value
+		elif (value[3] & tcp_state.TCP_SESSION_FLAG_EXPIRED):
 			value[3] &= ~tcp_state.TCP_SESSION_FLAG_EXPIRED
 			tcp_state.sessions[key] = value

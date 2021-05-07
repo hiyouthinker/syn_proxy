@@ -81,7 +81,7 @@ def tcp_packet_handler(pkt, dir):
 		print "current state of session: %s" % (tcp_state.tcp_session_states[state])
 		# SYN
 		if (index == 1):
-			if (time.time() - now > utils.tcp_session_timeout[state]) :
+			if (time.time() - now > utils.tcp_session_timeout[state][0]) :
 				print "session timeout"
 				utils.send_synack_to_client(pkt)
 				value[3] = tcp_state.TCP_SESSION_FLAG_SEEN_SYN

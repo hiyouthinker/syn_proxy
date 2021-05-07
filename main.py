@@ -56,7 +56,7 @@ if __name__ == "__main__":
 		elif opt in ('-s', '--fromserver'):
 			iface2 = arg
 		elif opt in ('-t', '--timeout'):
-			utils.tcp_session_timeout[tcp_state.TCP_ESTABLISHED] = string.atoi(arg)
+			utils.tcp_session_timeout[tcp_state.TCP_ESTABLISHED][0] = string.atoi(arg)
 
 	try:
 		thread.start_new_thread(show_session_thread, ("",))
