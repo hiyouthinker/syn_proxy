@@ -112,7 +112,19 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 		print "forward the %s packet to backend" % (target)
 		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)
 	else :
-		seq = pkt[TCP].seq - offset
+		seq = pkt[TCP].seq
+		if (type[0] == tcp_state.TCP_TYPE_RST):
+			if (state == tcp_state.TCP_SYN_SENT):
+				print "The port of server is not open? (seq: %d)" % seq
+				# This is a RST + ACK for syn
+				# seq (value[1]) is 0, need to correct the seq number
+				seq = value[1] + 1
+			else :
+				print "Please note: Unknown packet was found!"
+				seq -= offset
+		else :
+			seq -= offset
+
 		if ((seq < 0) or (seq > 4294967295)):
 			print "seq from server is invalid (%d/%d), change the seq to 0x123456" % (pkt[TCP].seq, offset)
 			return
