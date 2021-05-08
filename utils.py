@@ -101,14 +101,18 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 		value[4] = substate
 		tcp_state.sessions[key] = value
 
-	# Note:
-	# 		ACK Number of RST is 0
-	# 		Seq Number of RST + ACK maybe is 0
 	if (dir == 0):
-		ack = pkt[TCP].ack + offset
-		if ((ack < 0) or (ack > 4294967295)):
-			print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
-			return
+		ack = pkt[TCP].ack
+		if ((type[0] == tcp_state.TCP_TYPE_RST) and (type[1] == 0)):
+			# should be zero
+			print "ack number of RST is %d" % ack
+			if (ack != 0):
+				print "Please note: Unknown packet was found!"
+		else :
+			ack += offset
+			if ((ack < 0) or (ack > 4294967295)):
+				print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
+				return
 		print "forward the %s packet to backend" % (target)
 		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)
 	else :
@@ -120,7 +124,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 				# seq (value[1]) is 0, need to correct the seq number
 				seq = value[1] + 1
 			else :
-				print "Please note: Unknown packet was found!"
+				# for example: When the connection has been closed, the server received the data from the client
 				seq -= offset
 		else :
 			seq -= offset
