@@ -50,20 +50,8 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	value[2] = time.time()
 	tcp_state.sessions[key] = value
 
-	# PSH
-	if (type[0] == tcp_state.TCP_TYPE_PSH):
-		str = pkt.load.replace('\n', '\\n')
-
-		if (dir == 0):
-			print "forward the PSH packet [%s] to backend" % str
-			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=pkt[TCP].ack + offset, window=window)/pkt.load
-		else :
-			print "forward the PSH packet [%s] to client" % str
-			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq - offset, ack=pkt[TCP].ack, window=window)/pkt.load
-		send(l3, verbose=False)
-		return
 	# ACK/FIN
-	elif (type[0] == tcp_state.TCP_TYPE_FIN or type[0] == tcp_state.TCP_TYPE_ACK):
+	if (type[0] == tcp_state.TCP_TYPE_FIN or type[0] == tcp_state.TCP_TYPE_ACK):
 		# FIN usually carry the ACK flag
 		if (state == tcp_state.TCP_FIN_WAIT):
 			if ((dir == 0) and (substate & tcp_state.TCP_SESSION_SUBSTATE_SERVER_FIN)):
@@ -84,7 +72,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 					substate |= tcp_state.tcp_session_server_fin
 				substate |= tcp_state.TCP_SESSION_SUBSTATE_SERVER_FIN
 	# RST
-	else :
+	elif (type[0] == tcp_state.TCP_TYPE_RST) :
 		target = "RST"
 		if (dir == 0):
 			# 00xx 0000, xx is RST bit field
@@ -95,6 +83,11 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			if ((substate & 0x30) == 0):
 				substate |= tcp_state.tcp_session_server_rst
 			substate |= tcp_state.TCP_SESSION_SUBSTATE_CLOSED
+	# PSH
+	elif (type[0] == tcp_state.TCP_TYPE_PSH) :
+		target = "PSH"
+	else :
+		target = "No Flags"
 
 	if (substate != value[4]):
 		value[0] = tcp_state.TCP_FIN_WAIT
@@ -113,8 +106,14 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			if ((ack < 0) or (ack > 4294967295)):
 				print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
 				return
-		print "forward the %s packet to backend" % (target)
-		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)
+
+		if (type[0] == tcp_state.TCP_TYPE_PSH) :
+			str = pkt.load.replace('\n', '\\n')
+			print "forward the %s packet [%s] to backend" % (target, str)
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)/pkt.load
+		else :
+			print "forward the %s packet to backend" % (target)
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)
 	else :
 		seq = pkt[TCP].seq
 		if (type[0] == tcp_state.TCP_TYPE_RST):
@@ -130,10 +129,17 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			seq -= offset
 
 		if ((seq < 0) or (seq > 4294967295)):
+			print "Please note: Unknown packet was found!"
 			print "seq from server is invalid (%d/%d), change the seq to 0x123456" % (pkt[TCP].seq, offset)
-			return
-		print "forward the %s packet to client" % (target)
-		l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)
+			seq = 0x123456
+
+		if (type[0] == tcp_state.TCP_TYPE_PSH) :
+			str = pkt.load.replace('\n', '\\n')
+			print "forward the %s packet [%s] to backend" % (target, str)
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)/pkt.load
+		else :
+			print "forward the %s packet to client" % (target)
+			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)
 	send(l3, verbose=False)
 
 def send_syn_to_server(sip, dip, sport, dport, seq, window):
