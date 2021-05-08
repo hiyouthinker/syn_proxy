@@ -40,7 +40,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	sport = pkt[TCP].sport
 	dport = pkt[TCP].dport
 	flags = pkt[TCP].flags
-	index = tcp_state.tcp_flags_check(flags)
+	type = tcp_state.tcp_flags_check(flags)
 	target = "ACK"
 	state = value[0]
 	substate = value[4]
@@ -51,7 +51,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	tcp_state.sessions[key] = value
 
 	# PSH
-	if (index == 3):
+	if (type[0] == tcp_state.TCP_TYPE_PSH):
 		str = pkt.load.replace('\n', '\\n')
 
 		if (dir == 0):
@@ -63,7 +63,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 		send(l3, verbose=False)
 		return
 	# ACK/FIN
-	elif (index == 5 or index == 6):
+	elif (type[0] == tcp_state.TCP_TYPE_FIN or type[0] == tcp_state.TCP_TYPE_ACK):
 		# FIN usually carry the ACK flag
 		if (state == tcp_state.TCP_FIN_WAIT):
 			if ((dir == 0) and (substate & tcp_state.TCP_SESSION_SUBSTATE_SERVER_FIN)):
@@ -72,7 +72,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 				substate |= tcp_state.TCP_SESSION_SUBSTATE_SERVER_ACK
 
 		# FIN
-		if (index == 5):
+		if (type[0] == tcp_state.TCP_TYPE_FIN):
 			target = "FIN"
 			if (dir == 0):
 				# xx00 0000, xx is FIN bit field
@@ -101,6 +101,9 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 		value[4] = substate
 		tcp_state.sessions[key] = value
 
+	# Note:
+	# 		ACK Number of RST is 0
+	# 		Seq Number of RST + ACK maybe is 0
 	if (dir == 0):
 		ack = pkt[TCP].ack + offset
 		if ((ack < 0) or (ack > 4294967295)):

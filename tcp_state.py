@@ -5,6 +5,14 @@
 	BigBro @ 2021.04/05
 '''
 
+TCP_TYPE_NONE = 0
+TCP_TYPE_SYN = 1
+TCP_TYPE_SYNACK = 2
+TCP_TYPE_PSH = 3
+TCP_TYPE_RST = 4
+TCP_TYPE_FIN = 5
+TCP_TYPE_ACK = 6
+
 tcp_flags_fin=0x01
 tcp_flags_syn=0x02
 tcp_flags_rst=0x04
@@ -51,7 +59,16 @@ TCP_SESSION_SUBSTATE_CLOSED = 0x0f
 		offset		=>	the offset of seq/ack number between the client and the server
 '''
 sessions = {}
-tcp_pkt_flags = {0 : "No Flags", 1 : "SYN", 2 : "SYN + ACK", 3 : "PSH", 4 : "RST", 5 : "FIN", 6 : "ACK"}
+tcp_pkt_flags = {
+	TCP_TYPE_NONE : "No Flags",
+	TCP_TYPE_SYN : "SYN",
+	TCP_TYPE_SYNACK : "SYN + ACK",
+	TCP_TYPE_PSH : "PSH",
+	TCP_TYPE_RST : "RST",
+	TCP_TYPE_FIN: "FIN",
+	TCP_TYPE_ACK : "ACK"
+}
+
 tcp_session_states = {
 	TCP_SYN_SENT 	: "SYN_SENT",
 	TCP_SYN_RECV 	: "SYN_RECV",
@@ -70,17 +87,20 @@ tcp_session_destroy_first_pkt_dir = {
 }
 
 def tcp_flags_check(flags):
+	ack = 0
+	if (flags & tcp_flags_ack):
+		ack = 1
 	if (flags & tcp_flags_syn):
 		if (flags & tcp_flags_ack):
-			return 2
-		return 1
+			return [TCP_TYPE_SYNACK, 1]
+		return [TCP_TYPE_SYN, 0]
 	elif (flags & tcp_flags_psh):
-		return 3
+		return [TCP_TYPE_PSH, ack]
 	elif (flags & tcp_flags_rst):
-		return 4
+		return [TCP_TYPE_RST, ack]
 	elif (flags & tcp_flags_fin):
-		return 5
+		return [TCP_TYPE_FIN, ack]
 	elif (flags & tcp_flags_ack):
-		return 6
+		return [TCP_TYPE_ACK, 1]
 	else :
-		return 0
+		return [TCP_TYPE_NONE, 0]

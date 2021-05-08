@@ -20,10 +20,10 @@ def tcp_packet_handler(pkt, dir):
 	sport = pkt[TCP].sport
 	dport = pkt[TCP].dport
 	flags = pkt[TCP].flags
-	index = tcp_state.tcp_flags_check(flags)
+	type = tcp_state.tcp_flags_check(flags)
 	found = False
 
-	print "\n[%s:%d => %s:%d], flags: %s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[index])
+	print "\n[%s:%d => %s:%d], flags: %s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[type[0]])
 
 	if ((dir == 0) and (sport == 80 and dport != 80)):
 		# local -> client, ignore
@@ -32,7 +32,7 @@ def tcp_packet_handler(pkt, dir):
 		# local -> server, ignore
 		return
 
-	if ((index == 1) and (dir == 1)):
+	if ((type[0] == tcp_state.TCP_TYPE_SYN) and (dir == 1)):
 		print "recv SYN from server, drop the packet"
 		return
 
@@ -45,11 +45,11 @@ def tcp_packet_handler(pkt, dir):
 		found = True
 
 	if (found == False) :
-		print "Session was not found, pkt: %s" % tcp_state.tcp_pkt_flags[index]
-		if (index == 1):
+		print "Session was not found, pkt: %s" % tcp_state.tcp_pkt_flags[type[0]]
+		if (type[0] == tcp_state.TCP_TYPE_SYN):
 			utils.send_synack_to_client(pkt)
 		else :
-			if (index == 6):
+			if (type[0] == tcp_state.TCP_TYPE_ACK):
 				if (dir == 1):
 					print "recv ACK from server without session, drop the packet"
 					return
@@ -67,7 +67,7 @@ def tcp_packet_handler(pkt, dir):
 					tcp_state.sessions[key] = value
 					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
 			# PSH
-			elif (index == 3):
+			elif (type[0] == tcp_state.TCP_TYPE_PSH):
 				str = pkt.load.replace('\n', '\\n')
 				print "invalid packet (%s), drop the packet" % str
 			else :
@@ -80,7 +80,7 @@ def tcp_packet_handler(pkt, dir):
 		session_flags = value[3]
 		print "current state of session: %s" % (tcp_state.tcp_session_states[state])
 		# SYN
-		if (index == 1):
+		if (type[0] == tcp_state.TCP_TYPE_SYN):
 			if (time.time() - now > utils.tcp_session_timeout[state][0]) :
 				print "session timeout"
 				utils.send_synack_to_client(pkt)
@@ -89,7 +89,7 @@ def tcp_packet_handler(pkt, dir):
 			else :
 				print "session isn't expired, drop the SYN"
 		# SYN + ACK
-		elif (index == 2):
+		elif (type[0] == tcp_state.TCP_TYPE_SYNACK):
 			if (dir == 0):
 				print "invalid packet, INGORE!!!"
 			else :
@@ -107,7 +107,7 @@ def tcp_packet_handler(pkt, dir):
 				print "send ACK to backend"
 				utils.send_ack_to_server(dip, sip, dport, sport, ack, seq+1, value[5])
 		# ACK
-		elif (index == 6):
+		elif (type[0] == tcp_state.TCP_TYPE_ACK):
 			if ((dir == 0) and ((session_flags & tcp_state.TCP_SESSION_FLAG_SEEN_SYN) or (state == tcp_state.TCP_SYN_SENT))):
 				if (utils.tcp_syn_cookie_check(pkt[TCP].ack) == False):
 					if (session_flags & tcp_state.TCP_SESSION_FLAG_SEEN_SYN) :
