@@ -92,7 +92,7 @@ def tcp_flags_check(flags):
 		ack = 1
 	if (flags & tcp_flags_syn):
 		if (flags & tcp_flags_ack):
-			return [TCP_TYPE_SYNACK, 1]
+			return [TCP_TYPE_SYNACK, 0]
 		return [TCP_TYPE_SYN, 0]
 	elif (flags & tcp_flags_psh):
 		return [TCP_TYPE_PSH, ack]
@@ -101,6 +101,6 @@ def tcp_flags_check(flags):
 	elif (flags & tcp_flags_fin):
 		return [TCP_TYPE_FIN, ack]
 	elif (flags & tcp_flags_ack):
-		return [TCP_TYPE_ACK, 1]
+		return [TCP_TYPE_ACK, 0]
 	else :
 		return [TCP_TYPE_NONE, 0]

@@ -22,8 +22,9 @@ def tcp_packet_handler(pkt, dir):
 	flags = pkt[TCP].flags
 	type = tcp_state.tcp_flags_check(flags)
 	found = False
+	ack_list = ["", " + ACK"]
 
-	print "\n[%s:%d => %s:%d], flags: %s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[type[0]])
+	print "\n[%s:%d => %s:%d], flags: %s%s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[type[0]], ack_list[type[1]])
 
 	if ((dir == 0) and (sport == 80 and dport != 80)):
 		# local -> client, ignore
