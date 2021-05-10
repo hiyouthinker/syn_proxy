@@ -22,9 +22,8 @@ def tcp_packet_handler(pkt, dir):
 	flags = pkt[TCP].flags
 	type = tcp_state.tcp_flags_check(flags)
 	found = False
-	ack_list = ["", " + ACK"]
 
-	print "\n[%s:%d => %s:%d], flags: %s%s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[type[0]], ack_list[type[1]])
+	print "\n[%s:%d => %s:%d], flags: %s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[type[0] + type[1]])
 
 	if ((dir == 0) and (sport == 80 and dport != 80)):
 		# local -> client, ignore
@@ -46,11 +45,12 @@ def tcp_packet_handler(pkt, dir):
 		found = True
 
 	if (found == False) :
-		print "Session was not found, pkt: %s" % tcp_state.tcp_pkt_flags[type[0]]
+		print "Session was not found, pkt: %s" % tcp_state.tcp_pkt_flags[type[0] + type[1]]
 		if (type[0] == tcp_state.TCP_TYPE_SYN):
 			utils.send_synack_to_client(pkt)
 		else :
-			if (type[0] == tcp_state.TCP_TYPE_ACK):
+			len = utils.get_tcp_payload_length(pkt)
+			if ((type[0] == tcp_state.TCP_TYPE_ACK) and (len == 0)):
 				if (dir == 1):
 					print "recv ACK from server without session, drop the packet"
 					return
@@ -67,10 +67,11 @@ def tcp_packet_handler(pkt, dir):
 					value = [tcp_state.TCP_SYN_SENT, ack, time.time(), 0, 0, pkt[TCP].window, 0]
 					tcp_state.sessions[key] = value
 					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
-			# PSH
-			elif (type[0] == tcp_state.TCP_TYPE_PSH):
+			elif (len > 0):
 				str = pkt.load.replace('\n', '\\n')
 				print "invalid packet (%s), drop the packet" % str
+			elif (len < 0):
+				print "malformed packet, drop it"
 			else :
 				print "invalid packet, drop the packet"
 	else :

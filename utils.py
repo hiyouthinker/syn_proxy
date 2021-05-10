@@ -30,6 +30,11 @@ def tcp_syn_cookie_check(ack):
 	else :
 		return True
 
+def get_tcp_payload_length(pkt):
+	ip_hdr_len = pkt[IP].len - pkt[IP].ihl * 4
+	tcp_hdr_len = pkt[TCP].dataofs * 4
+	return (ip_hdr_len - tcp_hdr_len)
+
 '''
 	reconstruct the packet instead of modifying the packet
 	because the TCP checksum needs to be modified
@@ -45,6 +50,8 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	state = value[0]
 	substate = value[4]
 	window = pkt[TCP].window
+
+	len = get_tcp_payload_length(pkt)
 
 	# fresh the time
 	value[2] = time.time()
@@ -107,7 +114,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 				print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
 				return
 
-		if (type[0] == tcp_state.TCP_TYPE_PSH) :
+		if (len > 0) :
 			str = pkt.load.replace('\n', '\\n')
 			print "forward the %s packet [%s] to backend" % (target, str)
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)/pkt.load
@@ -133,7 +140,7 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			print "seq from server is invalid (%d/%d), change the seq to 0x123456" % (pkt[TCP].seq, offset)
 			seq = 0x123456
 
-		if (type[0] == tcp_state.TCP_TYPE_PSH) :
+		if (len > 0) :
 			str = pkt.load.replace('\n', '\\n')
 			print "forward the %s packet [%s] to backend" % (target, str)
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)/pkt.load
