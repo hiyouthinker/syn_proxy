@@ -46,10 +46,10 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 	dport = pkt[TCP].dport
 	flags = pkt[TCP].flags
 	type = tcp_state.tcp_flags_check(flags)
-	target = "ACK"
 	state = value[0]
 	substate = value[4]
 	window = pkt[TCP].window
+	target = tcp_state.tcp_pkt_flags[type[0] + type[1]]
 
 	len = get_tcp_payload_length(pkt)
 
@@ -68,7 +68,6 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 
 		# FIN
 		if (type[0] == tcp_state.TCP_TYPE_FIN):
-			target = "FIN"
 			if (dir == 0):
 				# xx00 0000, xx is FIN bit field
 				if ((substate & 0xc0) == 0):
@@ -80,7 +79,6 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 				substate |= tcp_state.TCP_SESSION_SUBSTATE_SERVER_FIN
 	# RST
 	elif (type[0] == tcp_state.TCP_TYPE_RST) :
-		target = "RST"
 		if (dir == 0):
 			# 00xx 0000, xx is RST bit field
 			if ((substate & 0x30) == 0):
@@ -90,11 +88,6 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			if ((substate & 0x30) == 0):
 				substate |= tcp_state.tcp_session_server_rst
 			substate |= tcp_state.TCP_SESSION_SUBSTATE_CLOSED
-	# PSH
-	elif (type[0] == tcp_state.TCP_TYPE_PSH) :
-		target = "PSH"
-	else :
-		target = "No Flags"
 
 	if (substate != value[4]):
 		value[0] = tcp_state.TCP_FIN_WAIT
