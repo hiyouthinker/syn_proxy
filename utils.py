@@ -142,6 +142,30 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)
 	send(l3, verbose=False)
 
+def handle_first_ack_or_data_from_client(pkt, key, dir):
+	if (dir == 1):
+		print "recv ACK from server without session, drop the packet"
+		return
+	if (tcp_syn_cookie_check(pkt[TCP].ack) == False):
+		print "Invalid ACK, drop the packet"
+	else :
+		print "TCP 3-way handshake with client was completed successfully"
+		print "I will conect to backend"
+		# seq is initial seq of Client -> Proxy
+		seq = pkt[TCP].seq - 1
+		# ack is initial seq of Proxy -> Client
+		ack = pkt[TCP].ack - 1
+		# OK, this is a valid client, create the session
+		value = {"state" : tcp_state.TCP_SYN_SENT,
+					"isn" : ack,
+					"time" : time.time(),
+					"flags" : 0,
+					"substate" : 0,
+					"window" : pkt[TCP].window,
+					"offset" : 0}
+		tcp_state.sessions[key] = value
+		send_syn_to_server(pkt[IP].src, pkt[IP].dst, pkt[TCP].sport, pkt[TCP].dport, seq, pkt[TCP].window)
+
 def send_syn_to_server(sip, dip, sport, dport, seq, window):
 	flags = tcp_state.tcp_flags_syn
 	l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, window=window)
@@ -154,7 +178,7 @@ def send_ack_to_server(sip, dip, sport, dport, seq, ack, window):
 	send(l3, verbose=False)
 	return
 
-def send_synack_to_client(pkt):
+def send_synack_to_client(pkt, mode):
 	sip = pkt[IP].src
 	dip = pkt[IP].dst
 	sport = pkt[TCP].sport
@@ -162,8 +186,9 @@ def send_synack_to_client(pkt):
 	flags = tcp_state.tcp_flags_synack
 	seq = tcp_syn_cookie_get(0)
 	ack = pkt[TCP].seq + 1
+	window = [0, 1460]
 
-	l3 = IP(src=dip, dst=sip)/TCP(sport=dport, dport=sport, flags=flags,seq=seq,ack=ack, window = 0)
+	l3 = IP(src=dip, dst=sip)/TCP(sport=dport, dport=sport, flags=flags,seq=seq,ack=ack, window = window[mode])
 	send(l3, verbose=False)
 	print "receive SYN, send SYN + ACK to client"
 

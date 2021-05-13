@@ -15,7 +15,7 @@ import utils
 import handler
 import tcp_state
 
-SYN_PROXY_VERSION = "1.0.2 BigBro @ 2021.04/05"
+SYN_PROXY_VERSION = "2.0.0 BigBro @ 2021.04/05"
 
 def recv_from_client_thread(port, iface):
 	filter = "tcp dst port %d" % port
@@ -39,17 +39,15 @@ if __name__ == "__main__":
 	iface1 = "eth1"
 	iface2 = "eth2"
 
-	opts, args = getopt.getopt(sys.argv[1:], 'hc:s:vt:', ['help', 'filename=', 'version'])
+	opts, args = getopt.getopt(sys.argv[1:], 'hc:s:t:m:v', ['help', 'fromclient=', 'fromserver=', 'timeout=', 'mode=', 'version'])
 	for opt, arg in opts:
 		if opt in ('-h', '--help'):
 			print("-h\t--help\t\tshow this help")
 			print("-c\t--fromclient\tinput interface of packet from client")
 			print("-s\t--fromserver\tinput interface of packet from backend")
 			print("-t\t--timeout\ttimeout of ESTABLISHED")
+			print("-m\t--mode\t\tSYN Proxy (s) or Delayed Binding (d), default is SYN Proxy")
 			print("-v\t--version\tshow version info")
-			exit()
-		elif opt in ('-v', '--version'):
-			print("%s" % SYN_PROXY_VERSION)
 			exit()
 		elif opt in ('-c', '--fromclient'):
 			iface1 = arg
@@ -57,6 +55,17 @@ if __name__ == "__main__":
 			iface2 = arg
 		elif opt in ('-t', '--timeout'):
 			utils.tcp_session_timeout[tcp_state.TCP_ESTABLISHED][0] = string.atoi(arg)
+		elif opt in ('-m', '--mode'):
+			if (arg[0] == 'd'):
+				handler.mode = 1
+			else :
+				handler.mode = 0
+		elif opt in ('-v', '--version'):
+			print("%s" % SYN_PROXY_VERSION)
+			exit()
+
+	mode_string = ["SYN Proxy", "Delayed Binding"]
+	print "mode: %s" % mode_string[handler.mode]
 
 	try:
 		thread.start_new_thread(show_session_thread, ("",))

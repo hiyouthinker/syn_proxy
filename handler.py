@@ -10,6 +10,8 @@ import time
 import tcp_state
 import utils
 
+mode = 0
+
 '''
 	dir = 0 : from client
 	dir = 1 : from server
@@ -47,35 +49,23 @@ def tcp_packet_handler(pkt, dir):
 	if (found == False) :
 		print "Session was not found, pkt: %s" % tcp_state.tcp_pkt_flags[type[0] + type[1]]
 		if (type[0] == tcp_state.TCP_TYPE_SYN):
-			utils.send_synack_to_client(pkt)
+			utils.send_synack_to_client(pkt, mode)
 		else :
 			len = utils.get_tcp_payload_length(pkt)
+			# ACK
 			if ((type[0] == tcp_state.TCP_TYPE_ACK) and (len == 0)):
-				if (dir == 1):
-					print "recv ACK from server without session, drop the packet"
-					return
-				if (utils.tcp_syn_cookie_check(pkt[TCP].ack) == False):
-					print "Invalid ACK, drop the packet"
-				else :
-					print "TCP 3-way handshake with client was completed successfully"
-					print "I will conect to backend"
-					# seq is initial seq of Client -> Proxy
-					seq = pkt[TCP].seq - 1
-					# ack is initial seq of Proxy -> Client
-					ack = pkt[TCP].ack - 1
-					# OK, this is a valid client, create the session
-					value = {"state" : tcp_state.TCP_SYN_SENT,
-								"isn" : ack,
-								"time" : time.time(),
-								"flags" : 0,
-								"substate" : 0,
-								"window" : pkt[TCP].window,
-								"offset" : 0}
-					tcp_state.sessions[key] = value
-					utils.send_syn_to_server(sip, dip, sport, dport, seq, pkt[TCP].window)
+				if (mode == 0):
+					utils.handle_first_ack_or_data_from_client(pkt, key, dir)
+				else:
+					print "Delayed Binding Mode, wait for ACK with TCP payload, drop the packet"
 			elif (len > 0):
 				str = pkt.load.replace('\n', '\\n')
-				print "invalid packet (%s), drop the packet" % str
+				# ACK or PSH + ACK
+				if ((type[0] == tcp_state.TCP_TYPE_ACK) and (mode == 1)):
+					print "receive packet: %s" % str
+					utils.handle_first_ack_or_data_from_client(pkt, key, dir)
+				else:
+					print "invalid packet (%s), drop the packet" % str
 			elif (len < 0):
 				print "malformed packet, drop it"
 			else :
@@ -91,7 +81,7 @@ def tcp_packet_handler(pkt, dir):
 		if (type[0] == tcp_state.TCP_TYPE_SYN):
 			if (time.time() - now > utils.tcp_session_timeout[state][0]) :
 				print "session timeout"
-				utils.send_synack_to_client(pkt)
+				utils.send_synack_to_client(pkt, mode)
 				value["flags"] = tcp_state.TCP_SESSION_FLAG_SEEN_SYN
 				tcp_state.sessions[key] = value
 			else :
