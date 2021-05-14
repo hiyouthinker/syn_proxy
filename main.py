@@ -18,13 +18,13 @@ import tcp_state
 SYN_PROXY_VERSION = "2.0.0 BigBro @ 2021.04/05"
 
 def recv_from_client_thread(port, iface):
-	filter = "tcp dst port %d" % port
+	filter = "inbound and tcp dst port %d" % port
 	print "capture TCP packet of port %d from client on %s" % (port, iface)
 
 	sniff(filter = filter, prn = handler.tcp_packet_handler_from_client, store = 0, iface = iface, count = 0)
 
 def recv_from_server_thread(threadName, port, iface):
-	filter = "tcp src port %d" % port
+	filter = "inbound and tcp src port %d" % port
 	print "capture TCP packet of port %d from server on %s" % (port, iface)
 
 	sniff(filter = filter, prn = handler.tcp_packet_handler_from_server, store = 0, iface = iface, count = 0)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 	iface1 = "eth1"
 	iface2 = "eth2"
 
-	opts, args = getopt.getopt(sys.argv[1:], 'hc:s:t:m:v', ['help', 'fromclient=', 'fromserver=', 'timeout=', 'mode=', 'version'])
+	opts, args = getopt.getopt(sys.argv[1:], 'hc:s:t:m:p:v', ['help', 'fromclient=', 'fromserver=', 'timeout=', 'mode=', 'port=', 'version'])
 	for opt, arg in opts:
 		if opt in ('-h', '--help'):
 			print("-h\t--help\t\tshow this help")
@@ -47,6 +47,7 @@ if __name__ == "__main__":
 			print("-s\t--fromserver\tinput interface of packet from backend")
 			print("-t\t--timeout\ttimeout of ESTABLISHED")
 			print("-m\t--mode\t\tSYN Proxy (s) or Delayed Binding (d), default is SYN Proxy")
+			print("-p\t--port\t\tlisten on the port")
 			print("-v\t--version\tshow version info")
 			exit()
 		elif opt in ('-c', '--fromclient'):
@@ -60,6 +61,15 @@ if __name__ == "__main__":
 				handler.mode = 1
 			else :
 				handler.mode = 0
+		elif opt in ('-p', '--port'):
+			try:
+				port = string.atoi(arg)
+				if (port <= 0):
+					print "invalid input, please use help"
+					exit()
+			except ValueError:
+				print "invalid input, please use help"
+				exit()
 		elif opt in ('-v', '--version'):
 			print("%s" % SYN_PROXY_VERSION)
 			exit()
