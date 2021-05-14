@@ -27,13 +27,6 @@ def tcp_packet_handler(pkt, dir):
 
 	print "\n[%s:%d => %s:%d], flags: %s" % (sip, sport, dip, dport, tcp_state.tcp_pkt_flags[type[0] + type[1]])
 
-	if ((dir == 0) and (sport == 80 and dport != 80)):
-		# local -> client, ignore
-		return
-	elif ((dir == 1) and (dport == 80 and sport != 80)):
-		# local -> server, ignore
-		return
-
 	if ((type[0] == tcp_state.TCP_TYPE_SYN) and (dir == 1)):
 		print "recv SYN from server, drop the packet"
 		return

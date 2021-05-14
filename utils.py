@@ -150,7 +150,7 @@ def handle_first_ack_or_data_from_client(pkt, key, dir):
 		print "Invalid ACK, drop the packet"
 	else :
 		print "TCP 3-way handshake with client was completed successfully"
-		print "I will conect to backend"
+		print "I will conect to backend (send SYN to backend)"
 		# seq is initial seq of Client -> Proxy
 		seq = pkt[TCP].seq - 1
 		# ack is initial seq of Proxy -> Client
