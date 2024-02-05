@@ -8,7 +8,7 @@
 from scapy.all import *
 import sys
 import getopt
-import thread
+import threading
 import string
 
 import utils
@@ -19,13 +19,13 @@ SYN_PROXY_VERSION = "2.0.0 BigBro @ 2021.04/05"
 
 def recv_from_client_thread(port, iface):
 	filter = "inbound and tcp dst port %d" % port
-	print "capture TCP packet of port %d from client on %s" % (port, iface)
+	print("capture TCP packet of port %d from client on %s" % (port, iface))
 
 	sniff(filter = filter, prn = handler.tcp_packet_handler_from_client, store = 0, iface = iface, count = 0)
 
 def recv_from_server_thread(threadName, port, iface):
 	filter = "inbound and tcp src port %d" % port
-	print "capture TCP packet of port %d from server on %s" % (port, iface)
+	print("capture TCP packet of port %d from server on %s" % (port, iface))
 
 	sniff(filter = filter, prn = handler.tcp_packet_handler_from_server, store = 0, iface = iface, count = 0)
 
@@ -65,22 +65,28 @@ if __name__ == "__main__":
 			try:
 				port = string.atoi(arg)
 				if (port <= 0):
-					print "invalid input, please use help"
+					print("invalid input, please use help")
 					exit()
 			except ValueError:
-				print "invalid input, please use help"
+				print("invalid input, please use help")
 				exit()
 		elif opt in ('-v', '--version'):
 			print("%s" % SYN_PROXY_VERSION)
 			exit()
 
 	mode_string = ["SYN Proxy", "Delayed Binding"]
-	print "mode: %s" % mode_string[handler.mode]
+	print("mode: %s" % mode_string[handler.mode])
 
 	try:
-		thread.start_new_thread(show_session_thread, ("",))
-		thread.start_new_thread(recv_from_server_thread, ("", port, iface2))
+		thread1 = threading.Thread(target=show_session_thread, args=("",))
+		thread2 = threading.Thread(target=recv_from_server_thread, args=("", port, iface2))
+
+		thread1.start()
+		thread2.start()
+
+#		thread1.join()
+#		thread2.join()
 	except:
-		print "Error: unable to start thread"
+		print("Error: unable to start thread")
 
 	recv_from_client_thread(port, iface1)

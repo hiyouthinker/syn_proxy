@@ -98,27 +98,27 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 		ack = pkt[TCP].ack
 		if ((type[0] == tcp_state.TCP_TYPE_RST) and (type[1] == 0)):
 			# should be zero
-			print "ack number of RST is %d" % ack
+			print("ack number of RST is %d" % ack)
 			if (ack != 0):
-				print "Please note: Unknown packet was found!"
+				print("Please note: Unknown packet was found!")
 		else :
 			ack += offset
 			if ((ack < 0) or (ack > 4294967295)):
-				print "Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack)
+				print("Invalid ACK Number (%d), attack packet? drop the packet" % (pkt[TCP].ack))
 				return
 
 		if (len > 0) :
 			str = pkt.load.replace('\n', '\\n')
-			print "forward the %s packet [%s] to backend" % (target, str)
+			print("forward the %s packet [%s] to backend" % (target, str))
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)/pkt.load
 		else :
-			print "forward the %s packet to backend" % (target)
+			print("forward the %s packet to backend" % (target))
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=pkt[TCP].seq, ack=ack, window=window)
 	else :
 		seq = pkt[TCP].seq
 		if (type[0] == tcp_state.TCP_TYPE_RST):
 			if (state == tcp_state.TCP_SYN_SENT):
-				print "The port of server is not open? (seq: %d)" % seq
+				print("The port of server is not open? (seq: %d)" % seq)
 				# This is a RST + ACK for syn
 				# seq (value["isn"]) is 0, need to correct the seq number
 				seq = value["isn"] + 1
@@ -129,28 +129,28 @@ def forwar_pkt_to_client_server(key, value, dir, pkt, offset):
 			seq -= offset
 
 		if ((seq < 0) or (seq > 4294967295)):
-			print "Please note: Unknown packet was found!"
-			print "seq from server is invalid (%d/%d), change the seq to 0x123456" % (pkt[TCP].seq, offset)
+			print("Please note: Unknown packet was found!")
+			print("seq from server is invalid (%d/%d), change the seq to 0x123456" % (pkt[TCP].seq, offset))
 			seq = 0x123456
 
 		if (len > 0) :
 			str = pkt.load.replace('\n', '\\n')
-			print "forward the %s packet [%s] to backend" % (target, str)
+			print("forward the %s packet [%s] to backend" % (target, str))
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)/pkt.load
 		else :
-			print "forward the %s packet to client" % (target)
+			print("forward the %s packet to client" % (target))
 			l3 = IP(src=sip, dst=dip)/TCP(sport=sport, dport=dport, flags=flags, seq=seq, ack=pkt[TCP].ack, window=window)
 	send(l3, verbose=False)
 
 def handle_first_ack_or_data_from_client(pkt, key, dir):
 	if (dir == 1):
-		print "recv ACK from server without session, drop the packet"
+		print("recv ACK from server without session, drop the packet")
 		return
 	if (tcp_syn_cookie_check(pkt[TCP].ack) == False):
-		print "Invalid ACK, drop the packet"
+		print("Invalid ACK, drop the packet")
 	else :
-		print "TCP 3-way handshake with client was completed successfully"
-		print "I will conect to backend (send SYN to backend)"
+		print("TCP 3-way handshake with client was completed successfully")
+		print("I will conect to backend (send SYN to backend)")
 		# seq is initial seq of Client -> Proxy
 		seq = pkt[TCP].seq - 1
 		# ack is initial seq of Proxy -> Client
@@ -190,11 +190,11 @@ def send_synack_to_client(pkt, mode):
 
 	l3 = IP(src=dip, dst=sip)/TCP(sport=dport, dport=sport, flags=flags,seq=seq,ack=ack, window = window[mode])
 	send(l3, verbose=False)
-	print "receive SYN, send SYN + ACK to client"
+	print("receive SYN, send SYN + ACK to client")
 
 def show_tcp_all_sessions():
 	keys = tcp_state.sessions.keys()
-	print "\nsession table: %d item(s)" % len(keys)
+	print("\nsession table: %d item(s)" % len(keys))
 	for key in keys :
 		value = tcp_state.sessions.get(key)
 		state = value["state"]
@@ -214,16 +214,16 @@ def show_tcp_all_sessions():
 					substate += "/" + tcp_state.tcp_session_destroy_first_pkt_dir[value["substate"] & 0x30]
 				else :
 					substate = tcp_state.tcp_session_destroy_first_pkt_dir[value["substate"] & 0x30]
-			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %d, status: %s, state: %s/0x%02x (%s)"
+			print("\t[%s:%d => %s:%d], last_time: %d, offset: %d, status: %s, state: %s/0x%02x (%s)"
 				% (key[0], key[1], key[2], key[3], value["time"], value["offset"], status,
 				tcp_state.tcp_session_states[state],
 				(value["substate"] & 0x0f), substate))
 		else :
-			print ("\t[%s:%d => %s:%d], last_time: %d, offset: %s, status: %s, state: %s"
+			print("\t[%s:%d => %s:%d], last_time: %d, offset: %s, status: %s, state: %s"
 				% (key[0], key[1], key[2], key[3], value["time"], value["offset"], status, tcp_state.tcp_session_states[state]))
 
 		if ((time.time() - value["time"]) > tcp_session_timeout[state][1]):
-			print "\t\t(this session was expired, will be removed)"
+			print("\t\t(this session was expired, will be removed)")
 			del tcp_state.sessions[key]
 		elif ((time.time() - value["time"]) > tcp_session_timeout[state][0]):
 			value["flags"] |= tcp_state.TCP_SESSION_FLAG_EXPIRED
